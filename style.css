@@ -11,7 +11,6 @@ header, #content, footer {
     border: 1px solid black;
 }
 
-
 .navbar {
     display: flex;
     align-items: center;
@@ -70,7 +69,6 @@ header, #content, footer {
     background-color: #ddd;
 }
 
-
 #content { 
     display: flex;
     padding: 10px;
@@ -95,12 +93,11 @@ aside h3 {
     list-style-type: none;
 }
 
-.main-categories li {
+.main-categories li, .sub-categories li {
     font-size: 0.9em;
 }
 
 .sub-categories li {
-    font-size: 0.9em;
     margin-left: 10px;
 }
 
@@ -109,27 +106,27 @@ aside h3 {
     color: black;
 }
 
-
 main {
     flex: 1;
     padding: 10px;
     background-color: white;
 }
 
-
 .cocktail-list {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
+    justify-content: flex-start;
 }
 
+/* Recipe Card Styling */
 .cocktail-card {
-    width: 200px;
+    width: 200px; /* Consistent width for all recipe cards */
     background: white;
     border: 1px solid black;
     padding: 10px;
     text-align: left;
-    margin-bottom: 10px;
+    box-sizing: border-box;
 }
 
 .cocktail-card h3 {
@@ -147,7 +144,8 @@ main {
 
 .cocktail-img {
     width: 100%;
-    height: auto;
+    height: 150px; /* Fixed height for all images */
+    object-fit: cover; /* Crop images to fit the fixed height */
     margin-bottom: 10px;
 }
 
@@ -186,7 +184,6 @@ main {
     font-weight: bold;
     margin-right: 10px;
 }
-
 
 
 footer {
