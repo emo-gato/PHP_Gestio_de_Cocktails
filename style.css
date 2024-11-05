@@ -154,6 +154,37 @@ main {
     text-align: left;
     list-style-type: none;
 }
+/* Login Zone Styling */
+.login-zone {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.login-form {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.login-button, .logout-link, .register-link {
+    padding: 5px 10px;
+    background-color: #333;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.logout-link:hover, .register-link:hover, .login-button:hover {
+    background-color: #555;
+}
+
+.login-zone span {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
 
 footer {
     text-align: center;
