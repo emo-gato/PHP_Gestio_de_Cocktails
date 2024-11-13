@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $login = $_POST['login'];
     $password = $_POST['password'];
 
-    // File with user credentials
+
     $usersFile = 'users.txt';
     $isAuthenticated = false;
 
@@ -29,4 +29,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo "Invalid login or password.";
     }
 }
-?>

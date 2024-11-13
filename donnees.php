@@ -34,4 +34,4 @@ if (isset($Recettes) && !empty($Recettes)) {
 } else {
     echo "No recipes found.";
 }
-?>
+

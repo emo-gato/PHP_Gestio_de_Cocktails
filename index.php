@@ -1,86 +1,93 @@
 <?php
-include 'Donnees.inc.php';
 session_start();
 
-// Toggle favorite functionality
-if (isset($_GET['toggleFavorite'])) {
-    $recipeId = $_GET['toggleFavorite'];
-    if (isset($_SESSION['favorites'][$recipeId])) {
-        unset($_SESSION['favorites'][$recipeId]);
-    } else {
-        $_SESSION['favorites'][$recipeId] = true;
+$isLoggedIn = isset($_SESSION['login']);
+include('Donnees.inc.php');
+
+$favorites = [];
+if ($isLoggedIn) {
+    $favoritesFile = 'favorites_' . $_SESSION['login'] . '.txt';
+    if (file_exists($favoritesFile)) {
+        $favorites = explode('|', file_get_contents($favoritesFile));
     }
-    $category = isset($_GET['category']) ? $_GET['category'] : 'Aliment';
-    header("Location: index.php?category=" . $category);
-    exit();
+} else {
+    $favorites = isset($_SESSION['favorites']) ? $_SESSION['favorites'] : [];
 }
 
-// Display full navigation hierarchy with current category highlighted
-function displayNavigation($hierarchy, $current = 'Aliment') {
-    echo "<p><strong>Aliment courant</strong><br>";
 
-    // Display breadcrumb navigation up to the current category
-    $trail = [];
-    $category = $current;
-    while ($category !== 'Aliment' && isset($hierarchy[$category])) {
-        array_unshift($trail, $category);
-        $category = $hierarchy[$category]['super-categorie'][0];
-    }
-    array_unshift($trail, 'Aliment');
+$showFavoritesOnly = isset($_GET['favorites']) && $_GET['favorites'] === 'true';
 
-    // Display full hierarchy breadcrumb
-    foreach ($trail as $index => $item) {
-        if ($index > 0) echo " / ";
-        echo "<a href='?category=" . urlencode($item) . "'>" . htmlspecialchars($item) . "</a>";
-    }
-    echo "</p>";
 
-    // Display sub-categories if available
-    echo "<p>Sous-catégories :</p><ul>";
-    if (isset($hierarchy[$current]['sous-categorie'])) {
-        foreach ($hierarchy[$current]['sous-categorie'] as $subCategory) {
-            echo "<li><a href='?category=" . htmlspecialchars($subCategory) . "'> - " . htmlspecialchars($subCategory) . "</a></li>";
-        }
-    }
-    echo "</ul>";
+if (isset($_GET['reset'])) {
+    unset($_SESSION['category_path']);
+    header("Location: index.php");
+    exit;
 }
 
-// Display recipes in a grid format
-function displayRecipes($recipes, $currentCategory = null, $isFavoriteList = false, $searchTerm = null) {
-    echo "<div class='cocktail-list'>";
-    foreach ($recipes as $id => $recipe) {
-        // Apply filtering by category if selected
-        if (!$isFavoriteList && $currentCategory && !in_array($currentCategory, $recipe['index'])) {
-            continue;
-        }
-
-        // Apply search filtering if a search term is provided
-        if ($searchTerm && stripos($recipe['titre'], $searchTerm) === false) {
-            continue;
-        }
-
-        $heart = isset($_SESSION['favorites'][$id]) ? '❤️' : '♡';
-        $toggleFavoriteLink = "<a href='?toggleFavorite=$id&category=" . urlencode($currentCategory) . "' class='heart'>$heart</a>";
-
-        echo "<div class='cocktail-card'>";
-        echo "<h3>" . htmlspecialchars($recipe['titre']) . " $toggleFavoriteLink</h3>";
-        $imgPath = "Photos/" . str_replace(' ', '_', strtolower($recipe['titre'])) . ".jpg";
-        if (!file_exists($imgPath)) {
-            $imgPath = "Photos/default.jpg";
-        }
-        echo "<img src='" . htmlspecialchars($imgPath) . "' alt='" . htmlspecialchars($recipe['titre']) . "' class='cocktail-img'>";
-        echo "<ul>";
-        foreach ($recipe['index'] as $ingredient) {
-            echo "<li>" . htmlspecialchars($ingredient) . "</li>";
-        }
-        echo "</ul>";
-        echo "</div>";
-    }
-    echo "</div>";
+$currentCategory = isset($_GET['category']) ? $_GET['category'] : 'Aliment';
+if (!isset($_SESSION['category_path'])) {
+    $_SESSION['category_path'] = [];
 }
 
-$currentCategory = isset($_GET['category']) ? $_GET['category'] : null;
-$searchTerm = isset($_GET['search']) ? $_GET['search'] : null;
+// Handle breadcrumb navigation reset
+if (isset($_GET['reset_path']) && !empty($_GET['reset_path'])) {
+    $resetCategory = $_GET['reset_path'];
+    $index = array_search($resetCategory, $_SESSION['category_path']);
+    if ($index !== false) {
+        $_SESSION['category_path'] = array_slice($_SESSION['category_path'], 0, $index + 1);
+    }
+    $currentCategory = $resetCategory;
+} else {
+    if ($currentCategory !== end($_SESSION['category_path'])) {
+        $_SESSION['category_path'][] = $currentCategory;
+    }
+}
+
+
+function getSubcategories($category, $hierarchy) {
+    return isset($hierarchy[$category]['sous-categorie']) ? $hierarchy[$category]['sous-categorie'] : [];
+}
+
+
+function getAllSubcategories($category, $hierarchy) {
+    $subcategories = [];
+    if (isset($hierarchy[$category]['sous-categorie'])) {
+        foreach ($hierarchy[$category]['sous-categorie'] as $subcategory) {
+            $subcategories[] = $subcategory;
+            $subcategories = array_merge($subcategories, getAllSubcategories($subcategory, $hierarchy));
+        }
+    }
+    return $subcategories;
+}
+
+
+function parseSearchTags($searchString) {
+    $desired = [];
+    $undesired = [];
+    preg_match_all('/\+?("[^"]+"|\S+)/', $searchString, $matches);
+    foreach ($matches[0] as $match) {
+        if (strpos($match, '-') === 0) {
+            $undesired[] = trim($match, '- "');
+        } else {
+            $desired[] = trim($match, '+ "');
+        }
+    }
+    return ['desired' => $desired, 'undesired' => $undesired];
+}
+
+
+$searchQuery = isset($_POST['searchString']) ? $_POST['searchString'] : '';
+$searchTags = parseSearchTags($searchQuery);
+$desiredIngredients = $searchTags['desired'];
+$undesiredIngredients = $searchTags['undesired'];
+
+
+$allRelatedCategories = array_merge([$currentCategory], getAllSubcategories($currentCategory, $Hierarchie));
+
+$fullPath = $_SESSION['category_path'];
+
+
+$subcategories = getSubcategories($currentCategory, $Hierarchie);
 ?>
 
 <!DOCTYPE html>
@@ -94,53 +101,103 @@ $searchTerm = isset($_GET['search']) ? $_GET['search'] : null;
     <header>
         <nav class="navbar">
             <div class="nav-buttons">
-                <a href="index.php" class="nav-button">Navigation</a>
+                <a href="index.php?reset=true" class="nav-button">Navigation</a>
                 <a href="index.php?favorites=true" class="nav-button">Recettes ❤️</a>
             </div>
             <div class="search-container">
-                <form method="get" action="index.php" style="display:inline;">
+                <form action="index.php" method="POST">
                     <label for="search">Recherche :</label>
-                    <input type="text" name="search" id="search" placeholder="Recherche..." value="<?php echo htmlspecialchars($searchTerm); ?>">
-                    <button type="submit">🔍</button>
+                    <input type="text" id="searchString" name="searchString" placeholder="Rechercher..." required>
+                    <button type="submit" class="search-button">🔍</button>
                 </form>
             </div>
-            <a href="identification.php" class="nav-button login-button">Zone de connexion</a>
+
+            <div class="login-zone">
+                <?php if ($isLoggedIn): ?>
+                    <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
+                    <a href="profile.php">Profil</a>
+                    <a href="logout.php" class="logout-link">Se déconnecter</a>
+                <?php else: ?>
+                    <form action="login.php" method="post" class="login-form">
+                        <input type="text" name="login" placeholder="Login" required>
+                        <input type="password" name="password" placeholder="Mot de passe" required>
+                        <button type="submit" class="login-button">Connexion</button>
+                    </form>
+                    <a href="register.php" class="register-link">S'inscrire</a>
+                <?php endif; ?>
+            </div>
         </nav>
     </header>
 
     <div id="content">
         <aside>
-            <?php
-                // Display the full navigation hierarchy
-                displayNavigation($Hierarchie, $currentCategory ?: 'Aliment');
-            ?>
-        </aside>
+            <h3>Aliment courant</h3>
+            <ul>
+                <li>
+                    <?php
+                    echo implode(" / ", array_map(function($cat) {
+                        return "<a href='index.php?reset_path=" . urlencode($cat) . "'>" . htmlspecialchars($cat) . "</a>";
+                    }, $fullPath));
+                    ?>
+                </li>
+            </ul>
 
+            <h4>Sous-catégories :</h4>
+            <ul class="sub-categories">
+                <?php foreach ($subcategories as $subcategory): ?>
+                    <li>- <a href="index.php?category=<?php echo urlencode($subcategory); ?>"><?php echo htmlspecialchars($subcategory); ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        </aside>
+        
         <main>
             <h2>Liste des cocktails</h2>
-            <div id="recipe-list">
+            <div id="recipe-list" class="cocktail-list">
                 <?php
-                    if (isset($_GET['favorites']) && $_GET['favorites'] === 'true') {
-                        // Show only favorite recipes if in the favorites section
-                        $favoriteRecipes = array_filter($Recettes, function($recipeId) {
-                            return isset($_SESSION['favorites'][$recipeId]);
-                        }, ARRAY_FILTER_USE_KEY);
-                        if (!empty($favoriteRecipes)) {
-                            displayRecipes($favoriteRecipes, $currentCategory, true, $searchTerm);
-                        } else {
-                            echo "<p>Aucune recette préférée.</p>";
+                    
+                    $filteredRecipes = [];
+                    foreach ($Recettes as $recipe) {
+                        $recipeIngredients = $recipe['index'];
+                        $matchesCategory = count(array_intersect($allRelatedCategories, $recipeIngredients)) > 0;
+                        $matchesDesired = empty($desiredIngredients) || count(array_intersect($recipeIngredients, $desiredIngredients)) > 0;
+                        $matchesUndesired = empty($undesiredIngredients) || count(array_intersect($recipeIngredients, $undesiredIngredients)) === 0;
+
+                        // Include recipe if it matches all conditions
+                        if ($matchesCategory && $matchesDesired && $matchesUndesired) {
+                            if (!$showFavoritesOnly || in_array($recipe['titre'], $favorites)) {
+                                $filteredRecipes[] = $recipe;
+                            }
+                        }
+                    }
+
+                    if (!empty($filteredRecipes)) {
+                        foreach ($filteredRecipes as $recipe) {
+                            $photoName = str_replace(' ', '_', strtolower($recipe['titre'])) . '.jpg';
+                            $photoPath = 'Photos/' . $photoName;
+
+                            if (!file_exists($photoPath)) {
+                                $photoPath = 'Photos/default.jpg';
+                            }
+
+                            $isFavorite = in_array($recipe['titre'], $favorites);
+                            $heartIcon = $isFavorite ? '❤️' : '🤍';
+
+                            echo "<div class='cocktail-card'>";
+                            echo "<h3>" . htmlspecialchars($recipe['titre']) . " <a href='toggle_favorite.php?recipe=" . urlencode($recipe['titre']) . "' class='heart-icon'>$heartIcon</a></h3>";
+                            echo "<img src='$photoPath' alt='" . htmlspecialchars($recipe['titre']) . "' class='cocktail-img'>";
+                            echo "<ul>";
+                            foreach ($recipe['index'] as $ingredient) {
+                                echo "<li>" . htmlspecialchars($ingredient) . "</li>";
+                            }
+                            echo "</ul>";
+                            echo "</div>";
                         }
                     } else {
-                        // Display all recipes, with optional category and search term filtering
-                        displayRecipes($Recettes, $currentCategory, false, $searchTerm);
+                        echo "<p>Aucune recette trouvée.</p>";
                     }
                 ?>
             </div>
         </main>
     </div>
-
-    <footer>
-        <p>&copy; 2023 Cocktail Recipes. All rights reserved.</p>
-    </footer>
 </body>
 </html>
