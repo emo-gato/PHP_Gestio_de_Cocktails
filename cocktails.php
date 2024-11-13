@@ -1,60 +1,31 @@
 <?php
-include('Donnees.inc.php');
-
-$favorites = isset($_COOKIE['favorites']) ? explode('|', $_COOKIE['favorites']) : [];
-$showFavoritesOnly = isset($_GET['favorites']) && $_GET['favorites'] == 'true';
-
-$ingredientFilter = isset($_GET['ingredient']) ? $_GET['ingredient'] : '';
-
-echo "<!-- Debug: Ingredient filter is set to '$ingredientFilter' -->";  // Debugging line
-
-
-if (isset($Recettes) && !empty($Recettes)) {
-    $photoDir = 'Photos/';
-    
-    echo '<div class="cocktail-list">';
-
-    foreach ($Recettes as $recette) {
-        $titre = $recette['titre'];
-        $ingredients = explode('|', $recette['ingredients']);
-        $indexIngredients = $recette['index'];
-
-       
-        if ($showFavoritesOnly && !in_array($titre, $favorites)) {
-            continue;
-        }
-
-
-        if ($ingredientFilter && !in_array($ingredientFilter, $indexIngredients)) {
-            continue; 
-        }
-
-
-        $photoName = str_replace(' ', '_', strtolower($titre)) . '.jpg';
-        $photoPath = $photoDir . $photoName;
-
-        if (!file_exists($photoPath)) {
-            $photoPath = $photoDir . 'default.jpg';
-        }
-
-        $isFavorite = in_array($titre, $favorites);
-        $heartIcon = $isFavorite ? '❤️' : '🤍';
-
-
-        echo "<div class='cocktail-card'>";
-        echo "<h3>$titre <a href='toggle_favorite.php?recipe=" . urlencode($titre) . "' class='heart'>$heartIcon</a></h3>";
-        echo "<img src='$photoPath' alt='$titre' class='cocktail-img'>";
-        
-        echo "<h4>Ingredients:</h4><ul>";
-        foreach ($ingredients as $ingredient) {
-            echo "<li>" . htmlspecialchars($ingredient) . "</li>";
-        }
-        echo "</ul>";
-        echo "</div>";
-    }
-    
-    echo '</div>';
-} else {
-    echo "No recipes found.";
+// Start the session if it hasn't already been started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-?>
+
+include('Donnees.inc.php');
+include('favorites.php');
+include('search_functions.php');
+
+// Retrieve favorites from session or cookie
+$isLoggedIn = isset($_SESSION['login']);
+$favorites = getFavorites($isLoggedIn);
+
+// Check if displaying only favorites
+$showFavoritesOnly = isset($_GET['favorites']) && $_GET['favorites'] === 'true';
+
+// Initialize an array to hold filtered recipes
+$filteredRecipes = [];
+
+// Get the current tag/category from the URL
+$currentTag = isset($_GET['category']) ? $_GET['category'] : '';
+
+// Handle search input
+if (isset($_POST["searchString"])) {
+    handleSearch($_POST["searchString"], $favorites);
+} else {
+    // If no search is made, proceed with normal category filtering
+    handleCategoryFilter($currentTag, $favorites, $showFavoritesOnly, $filteredRecipes);
+}
+
