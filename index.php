@@ -4,32 +4,34 @@ session_start();
 $isLoggedIn = isset($_SESSION['login']);
 include('Donnees.inc.php');
 
+// Load user favorites
 $favorites = [];
 if ($isLoggedIn) {
     $favoritesFile = 'favorites_' . $_SESSION['login'] . '.txt';
     if (file_exists($favoritesFile)) {
-        $favorites = explode('|', file_get_contents($favoritesFile));
+        $favorites = explode('|', trim(file_get_contents($favoritesFile)));
     }
 } else {
     $favorites = isset($_SESSION['favorites']) ? $_SESSION['favorites'] : [];
 }
 
-
+// Check if only favorites should be shown
 $showFavoritesOnly = isset($_GET['favorites']) && $_GET['favorites'] === 'true';
 
-
+// Reset category path
 if (isset($_GET['reset'])) {
     unset($_SESSION['category_path']);
     header("Location: index.php");
     exit;
 }
 
+// Current category or default to 'Aliment'
 $currentCategory = isset($_GET['category']) ? $_GET['category'] : 'Aliment';
+
+// Initialize or update category path for breadcrumb
 if (!isset($_SESSION['category_path'])) {
     $_SESSION['category_path'] = [];
 }
-
-// Handle breadcrumb navigation reset
 if (isset($_GET['reset_path']) && !empty($_GET['reset_path'])) {
     $resetCategory = $_GET['reset_path'];
     $index = array_search($resetCategory, $_SESSION['category_path']);
@@ -43,12 +45,12 @@ if (isset($_GET['reset_path']) && !empty($_GET['reset_path'])) {
     }
 }
 
-
+// Function to get subcategories of a category
 function getSubcategories($category, $hierarchy) {
     return isset($hierarchy[$category]['sous-categorie']) ? $hierarchy[$category]['sous-categorie'] : [];
 }
 
-
+// Function to get all nested subcategories of a category
 function getAllSubcategories($category, $hierarchy) {
     $subcategories = [];
     if (isset($hierarchy[$category]['sous-categorie'])) {
@@ -60,7 +62,7 @@ function getAllSubcategories($category, $hierarchy) {
     return $subcategories;
 }
 
-
+// Parse search tags from search string
 function parseSearchTags($searchString) {
     $desired = [];
     $undesired = [];
@@ -75,18 +77,19 @@ function parseSearchTags($searchString) {
     return ['desired' => $desired, 'undesired' => $undesired];
 }
 
-
+// Parse and handle search query
 $searchQuery = isset($_POST['searchString']) ? $_POST['searchString'] : '';
 $searchTags = parseSearchTags($searchQuery);
 $desiredIngredients = $searchTags['desired'];
 $undesiredIngredients = $searchTags['undesired'];
 
-
+// Retrieve all related categories for filtering
 $allRelatedCategories = array_merge([$currentCategory], getAllSubcategories($currentCategory, $Hierarchie));
 
+// Breadcrumb path
 $fullPath = $_SESSION['category_path'];
 
-
+// Get subcategories for display
 $subcategories = getSubcategories($currentCategory, $Hierarchie);
 ?>
 
@@ -111,7 +114,6 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
                     <button type="submit" class="search-button">🔍</button>
                 </form>
             </div>
-
             <div class="login-zone">
                 <?php if ($isLoggedIn): ?>
                     <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
@@ -141,7 +143,6 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
                     ?>
                 </li>
             </ul>
-
             <h4>Sous-catégories :</h4>
             <ul class="sub-categories">
                 <?php foreach ($subcategories as $subcategory): ?>
@@ -154,47 +155,46 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
             <h2>Liste des cocktails</h2>
             <div id="recipe-list" class="cocktail-list">
                 <?php
-                    
-                    $filteredRecipes = [];
-                    foreach ($Recettes as $recipe) {
-                        $recipeIngredients = $recipe['index'];
-                        $matchesCategory = count(array_intersect($allRelatedCategories, $recipeIngredients)) > 0;
-                        $matchesDesired = empty($desiredIngredients) || count(array_intersect($recipeIngredients, $desiredIngredients)) > 0;
-                        $matchesUndesired = empty($undesiredIngredients) || count(array_intersect($recipeIngredients, $undesiredIngredients)) === 0;
+                // Filter recipes based on search and favorites
+                $filteredRecipes = [];
+                foreach ($Recettes as $recipe) {
+                    $recipeIngredients = $recipe['index'];
+                    $matchesCategory = count(array_intersect($allRelatedCategories, $recipeIngredients)) > 0;
+                    $matchesDesired = empty($desiredIngredients) || count(array_intersect($recipeIngredients, $desiredIngredients)) > 0;
+                    $matchesUndesired = empty($undesiredIngredients) || count(array_intersect($recipeIngredients, $undesiredIngredients)) === 0;
 
-                        // Include recipe if it matches all conditions
-                        if ($matchesCategory && $matchesDesired && $matchesUndesired) {
-                            if (!$showFavoritesOnly || in_array($recipe['titre'], $favorites)) {
-                                $filteredRecipes[] = $recipe;
-                            }
+                    // Include recipe if it matches all conditions
+                    if ($matchesCategory && $matchesDesired && $matchesUndesired) {
+                        if (!$showFavoritesOnly || in_array($recipe['titre'], $favorites)) {
+                            $filteredRecipes[] = $recipe;
                         }
                     }
+                }
 
-                    if (!empty($filteredRecipes)) {
-                        foreach ($filteredRecipes as $recipe) {
-                            $photoName = str_replace(' ', '_', strtolower($recipe['titre'])) . '.jpg';
-                            $photoPath = 'Photos/' . $photoName;
-
-                            if (!file_exists($photoPath)) {
-                                $photoPath = 'Photos/default.jpg';
-                            }
-
-                            $isFavorite = in_array($recipe['titre'], $favorites);
-                            $heartIcon = $isFavorite ? '❤️' : '🤍';
-
-                            echo "<div class='cocktail-card'>";
-                            echo "<h3>" . htmlspecialchars($recipe['titre']) . " <a href='toggle_favorite.php?recipe=" . urlencode($recipe['titre']) . "' class='heart-icon'>$heartIcon</a></h3>";
-                            echo "<img src='$photoPath' alt='" . htmlspecialchars($recipe['titre']) . "' class='cocktail-img'>";
-                            echo "<ul>";
-                            foreach ($recipe['index'] as $ingredient) {
-                                echo "<li>" . htmlspecialchars($ingredient) . "</li>";
-                            }
-                            echo "</ul>";
-                            echo "</div>";
+                // Display filtered recipes or a message if none found
+                if (!empty($filteredRecipes)) {
+                    foreach ($filteredRecipes as $recipe) {
+                        $photoName = str_replace(' ', '_', strtolower($recipe['titre'])) . '.jpg';
+                        $photoPath = file_exists('Photos/' . $photoName) ? 'Photos/' . $photoName : 'Photos/default.jpg';
+                
+                        $isFavorite = in_array($recipe['titre'], $favorites);
+                        $heartIcon = $isFavorite ? '❤️' : '🤍';
+                
+                        echo "<div class='cocktail-card'>";
+                        // Place the heart icon as an independent element inside the card
+                        echo "<a href='toggle_favorite.php?recipe=" . urlencode($recipe['titre']) . "' class='heart-icon'>$heartIcon</a>";
+                        echo "<h3>" . htmlspecialchars($recipe['titre']) . "</h3>";
+                        echo "<img src='$photoPath' alt='" . htmlspecialchars($recipe['titre']) . "' class='cocktail-img'>";
+                        echo "<ul>";
+                        foreach ($recipe['index'] as $ingredient) {
+                            echo "<li>" . htmlspecialchars($ingredient) . "</li>";
                         }
-                    } else {
-                        echo "<p>Aucune recette trouvée.</p>";
+                        echo "</ul>";
+                        echo "</div>";
                     }
+                } else {
+                    echo "<p>Aucune recette trouvée.</p>";
+                }
                 ?>
             </div>
         </main>
