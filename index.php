@@ -1,9 +1,12 @@
 <?php
 session_start();
-
+header('Content-Type: text/html; charset=utf-8');
 $isLoggedIn = isset($_SESSION['login']);
 include('Donnees.inc.php'); // Load hierarchy and recipes
 include('search.php'); // Include search functionality
+
+// Handle the dynamic content display based on the action parameter
+$action = isset($_GET['action']) ? $_GET['action'] : 'cocktails';
 
 // Load user favorites
 $favorites = [];
@@ -118,10 +121,11 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
     <meta charset="UTF-8">
     <title>Cocktail Recipes</title>
     <link rel="stylesheet" href="style.css">
+    
 </head>
 <body>
     <header>
-        <nav class="navbar">
+    <nav class="navbar">
             <div class="nav-buttons">
                 <a href="index.php?reset=true" class="nav-button">Navigation</a>
                 <a href="index.php?favorites=true" class="nav-button">Recettes ❤️</a>
@@ -136,7 +140,7 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
             <div class="login-zone">
                 <?php if ($isLoggedIn): ?>
                     <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
-                    <a href="profile.php">Profil</a>
+                    <a href="index.php?action=profile">Profil</a>
                     <a href="logout.php" class="logout-link">Se déconnecter</a>
                 <?php else: ?>
                     <form action="login.php" method="post" class="login-form">
@@ -144,7 +148,7 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
                         <input type="password" name="password" placeholder="Mot de passe" required>
                         <button type="submit" class="login-button">Connexion</button>
                     </form>
-                    <a href="register.php" class="register-link">S'inscrire</a>
+                    <a href="index.php?action=register" class="register-link">S'inscrire</a>
                 <?php endif; ?>
             </div>
         </nav>
@@ -169,14 +173,15 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
                 <?php endforeach; ?>
             </ul>
         </aside>
-        
+       
         <main>
-            <h2>Liste des cocktails</h2>
+            <?php if ($action === 'cocktails'): ?>
+                <h2>Liste des cocktails</h2>
             <div id="recipe-list" class="cocktail-list">
                 <?php
                 if (!empty($filteredRecipes)) {
                     foreach ($filteredRecipes as $recipe) {
-                        $photoName = str_replace(' ', '_', strtolower($recipe['titre'])) . '.jpg';
+                        $photoName = str_replace(' ', '', strtolower($recipe['titre'])) . '.jpg';
                         $photoPath = file_exists('Photos/' . $photoName) ? 'Photos/' . $photoName : 'Photos/default.jpg';
                         $isFavorite = in_array($recipe['titre'], $favorites);
                         $heartIcon = $isFavorite ? '❤️' : '🤍';
@@ -196,7 +201,84 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
                     echo "<p>Aucune recette trouvée.</p>";
                 }
                 ?>
-            </div>
+                </div>
+            <?php elseif ($action === 'profile'): ?>
+                <?php
+                $isLoggedIn = isset($_SESSION['login']);
+                if (!$isLoggedIn) {
+                    header("Location: login.php");
+                    exit;
+                }
+                
+                $username = $_SESSION['login'];
+                $userDirectory = 'users'; // Define the users directory
+                $userFile = $userDirectory . '/' . $username . '.txt';
+                
+                // Check if the 'users' directory exists; if not, create it
+                if (!is_dir($userDirectory)) {
+                    mkdir($userDirectory, 0777, true); // Create the directory with recursive flag and permissions
+                }
+                
+                // Check if the user file exists; if not, create it with default data
+                if (!file_exists($userFile)) {
+                    $userData = [
+                        'name' => '',
+                        'surname' => '',
+                        'gender' => '',
+                        'birthdate' => ''
+                    ];
+                    // Create the file with default empty user data
+                    file_put_contents($userFile, json_encode($userData));
+                } else {
+                    // Load user data from existing file
+                    $userData = json_decode(file_get_contents($userFile), true);
+                }
+                
+                $name = isset($userData['name']) ? $userData['name'] : '';
+                $surname = isset($userData['surname']) ? $userData['surname'] : '';
+                $gender = isset($userData['gender']) ? $userData['gender'] : '';
+                $birthdate = isset($userData['birthdate']) ? $userData['birthdate'] : '';
+                
+                ?>
+                <h2 class="section-title">Profil Utilisateur</h2>
+                <div class="form-container">
+                    <form method="POST" action="profile.php" class="profile-form">
+                        <div class="form-group">
+                            <label for="name">Nom:</label>
+                            <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($name); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="surname">Prénom:</label>
+                            <input type="text" id="surname" name="surname" value="<?php echo htmlspecialchars($surname); ?>" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="gender">Sexe:</label>
+                            <select id="gender" name="gender" required>
+                                <option value="homme" <?php echo $gender === 'homme' ? 'selected' : ''; ?>>Homme</option>
+                                <option value="femme" <?php echo $gender === 'femme' ? 'selected' : ''; ?>>Femme</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="birthdate">Date de naissance:</label>
+                            <input type="date" id="birthdate" name="birthdate" value="<?php echo htmlspecialchars($birthdate); ?>" required>
+                        </div>
+                        <button type="submit" class="submit-button">Mettre à jour</button>
+                    </form>
+                    <div class="message">
+                        <?php
+                        $profilemessage = isset($_GET['message']) ? $_GET['message'] : '';
+                        echo $profilemessage; ?>
+                </div>
+            <?php elseif ($action === 'register'): ?>
+                <h2>S'inscrire</h2>
+                <form action="register.php" method="POST">
+                    <label for="username">Nom d'utilisateur:</label>
+                    <input type="text" id="username" name="username" required>
+                    <label for="password">Mot de passe:</label>
+                    <input type="password" id="password" name="password" required>
+                    <button type="submit">S'inscrire</button>
+                </form>
+            <?php endif; ?>
         </main>
     </div>
 </body>
