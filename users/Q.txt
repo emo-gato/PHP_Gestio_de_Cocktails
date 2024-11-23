@@ -1,0 +1,6 @@
+{
+    "name": "hedu",
+    "surname": "hedu",
+    "gender": "homme",
+    "birthdate": "2002-07-06"
+}
