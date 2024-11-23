@@ -1,23 +1,60 @@
 <?php
 session_start();
 header('Content-Type: text/html; charset=utf-8');
-$isLoggedIn = isset($_SESSION['login']);
-include('Donnees.inc.php'); // Load hierarchy and recipes
+include('Donnees.inc.php'); // Load recipes and hierarchy
+include('users.php'); // Load user data
 include('search.php'); // Include search functionality
+
+$isLoggedIn = isset($_SESSION['login']);
+
+// Ensure user data exists
+if ($isLoggedIn) {
+    $currentUser = $_SESSION['login'];
+
+    // Initialize user in $Users if not present
+    if (!isset($Users[$currentUser])) {
+        $Users[$currentUser] = array(
+            'favorites' => array(),
+            'profile' => array(
+                'name' => '',
+                'surname' => '',
+                'gender' => '',
+                'birthdate' => '',
+            ),
+        );
+        saveUsers($Users); // Save changes to users.php
+    }
+
+    // Reference the current user's data
+    $favorites = &$Users[$currentUser]['favorites'];
+    $profile = &$Users[$currentUser]['profile'];
+} else {
+    $favorites = array(); // Guests have no saved favorites
+    $profile = array(); // Guests have no profile
+}
+
+// Handle toggling favorites
+if (isset($_GET['toggle_favorite'])) {
+    $drinkTitle = urldecode($_GET['toggle_favorite']);
+    if (in_array($drinkTitle, $favorites)) {
+        $favorites = array_diff($favorites, [$drinkTitle]); // Remove from favorites
+    } else {
+        $favorites[] = $drinkTitle; // Add to favorites
+    }
+    saveUsers($Users); // Save changes to users.php
+    header("Location: index.php?action=cocktails");
+    exit;
+}
+
+// Function to save $Users back to users.php
+function saveUsers($users) {
+    $fileContent = "<?php\n\$Users = " . var_export($users, true) . ";\n?>";
+    file_put_contents('users.php', $fileContent);
+}
 
 // Handle the dynamic content display based on the action parameter
 $action = isset($_GET['action']) ? $_GET['action'] : 'cocktails';
-
-// Load user favorites
-$favorites = [];
-if ($isLoggedIn) {
-    $favoritesFile = 'favorites_' . $_SESSION['login'] . '.txt';
-    if (file_exists($favoritesFile)) {
-        $favorites = explode('|', trim(file_get_contents($favoritesFile)));
-    }
-} else {
-    $favorites = isset($_SESSION['favorites']) ? $_SESSION['favorites'] : [];
-}
+$selectedCocktail = isset($_GET['cocktail']) ? urldecode($_GET['cocktail']) : null;
 
 // Check if only favorites should be shown
 $showFavoritesOnly = isset($_GET['favorites']) && $_GET['favorites'] === 'true';
@@ -37,23 +74,19 @@ if (!isset($_SESSION['category_path'])) {
     $_SESSION['category_path'] = [];
 }
 
-// Prevent duplicate tags in the breadcrumb path
 if (isset($_GET['reset_path']) && !empty($_GET['reset_path'])) {
     $resetCategory = $_GET['reset_path'];
     $index = array_search($resetCategory, $_SESSION['category_path']);
     if ($index !== false) {
-        // Truncate the path up to the current tag
         $_SESSION['category_path'] = array_slice($_SESSION['category_path'], 0, $index + 1);
     }
     $currentCategory = $resetCategory;
 } else {
     if ($currentCategory !== end($_SESSION['category_path'])) {
-        // Add the current category only if it's not already the last one
         $_SESSION['category_path'][] = $currentCategory;
     }
 }
 
-// Remove duplicates (optional, as a safety measure)
 $_SESSION['category_path'] = array_unique($_SESSION['category_path']);
 
 // Function to get subcategories of a category
@@ -81,23 +114,9 @@ $query = isset($_POST['searchString']) ? $_POST['searchString'] : '';
 $filteredRecipes = [];
 
 if (!empty($query)) {
-    // Use search functions from search.php
     $tags = parseSearchQuery($query, $Hierarchie, $Recettes);
     $filteredRecipes = searchRecipes($tags, $Recettes);
-
-    // Debugging: Write search results to debug_log.txt
-    $logData = [
-        'Query' => $query,
-        'Desired Tags' => $tags['desired'],
-        'Undesired Tags' => $tags['undesired'],
-        'Unrecognized Tags' => $tags['unrecognized'],
-        'Filtered Recipes' => array_map(function ($recipe) {
-            return $recipe['titre'];
-        }, $filteredRecipes),
-    ];
-    file_put_contents('debug_log.txt', print_r($logData, true));
 } else {
-    // Default behavior: Show recipes based on the current category
     foreach ($Recettes as $recipe) {
         $recipeIngredients = $recipe['index'];
         $matchesCategory = count(array_intersect($allRelatedCategories, $recipeIngredients)) > 0;
@@ -108,10 +127,7 @@ if (!empty($query)) {
     }
 }
 
-// Breadcrumb path
 $fullPath = $_SESSION['category_path'];
-
-// Get subcategories for display
 $subcategories = getSubcategories($currentCategory, $Hierarchie);
 ?>
 
@@ -121,165 +137,143 @@ $subcategories = getSubcategories($currentCategory, $Hierarchie);
     <meta charset="UTF-8">
     <title>Cocktail Recipes</title>
     <link rel="stylesheet" href="style.css">
-    
 </head>
 <body>
-    <header>
+<header>
     <nav class="navbar">
-            <div class="nav-buttons">
-                <a href="index.php?reset=true" class="nav-button">Navigation</a>
-                <a href="index.php?favorites=true" class="nav-button">Recettes ❤️</a>
-            </div>
-            <div class="search-container">
-                <form id="searchForm" method="POST" action="index.php">
-                    <label for="search">Recherche :</label>
-                    <input type="text" id="searchString" name="searchString" placeholder="Rechercher..." required>
-                    <button type="submit" class="search-button">🔍</button>
+        <div class="nav-buttons">
+            <a href="index.php?reset=true" class="nav-button">Navigation</a>
+            <a href="index.php?favorites=true" class="nav-button">Recettes ❤️</a>
+        </div>
+        <div class="search-container">
+            <form id="searchForm" method="POST" action="index.php">
+                <label for="search">Recherche :</label>
+                <input type="text" id="searchString" name="searchString" placeholder="Rechercher..." required>
+                <button type="submit" class="search-button">🔍</button>
+            </form>
+        </div>
+        <div class="login-zone">
+            <?php if ($isLoggedIn): ?>
+                <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
+                <a href="index.php?action=profile">Profil</a>
+                <a href="logout.php" class="logout-link">Se déconnecter</a>
+            <?php else: ?>
+                <form action="login.php" method="post" class="login-form">
+                    <input type="text" name="login" placeholder="Login" required>
+                    <input type="password" name="password" placeholder="Mot de passe" required>
+                    <button type="submit" class="login-button">Connexion</button>
                 </form>
-            </div>
-            <div class="login-zone">
-                <?php if ($isLoggedIn): ?>
-                    <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
-                    <a href="index.php?action=profile">Profil</a>
-                    <a href="logout.php" class="logout-link">Se déconnecter</a>
-                <?php else: ?>
-                    <form action="login.php" method="post" class="login-form">
-                        <input type="text" name="login" placeholder="Login" required>
-                        <input type="password" name="password" placeholder="Mot de passe" required>
-                        <button type="submit" class="login-button">Connexion</button>
-                    </form>
-                    <a href="index.php?action=register" class="register-link">S'inscrire</a>
-                <?php endif; ?>
-            </div>
-        </nav>
-    </header>
-
-    <div id="content">
-        <aside>
-            <h3>Aliment courant</h3>
-            <ul>
-                <li>
-                    <?php
-                    echo implode(" / ", array_map(function($cat) {
-                        return "<a href='index.php?reset_path=" . urlencode($cat) . "'>" . htmlspecialchars($cat) . "</a>";
-                    }, $fullPath)); // Unique tags in the breadcrumb
-                    ?>
-                </li>
-            </ul>
-            <h4>Sous-catégories :</h4>
-            <ul class="sub-categories">
-                <?php foreach ($subcategories as $subcategory): ?>
-                    <li>- <a href="index.php?category=<?php echo urlencode($subcategory); ?>"><?php echo htmlspecialchars($subcategory); ?></a></li>
-                <?php endforeach; ?>
-            </ul>
-        </aside>
-       
-        <main>
-            <?php if ($action === 'cocktails'): ?>
-                <h2>Liste des cocktails</h2>
-            <div id="recipe-list" class="cocktail-list">
-                <?php
-                if (!empty($filteredRecipes)) {
-                    foreach ($filteredRecipes as $recipe) {
-                        $photoName = str_replace(' ', '', strtolower($recipe['titre'])) . '.jpg';
-                        $photoPath = file_exists('Photos/' . $photoName) ? 'Photos/' . $photoName : 'Photos/default.jpg';
-                        $isFavorite = in_array($recipe['titre'], $favorites);
-                        $heartIcon = $isFavorite ? '❤️' : '🤍';
-
-                        echo "<div class='cocktail-card'>";
-                        echo "<a href='toggle_favorite.php?recipe=" . urlencode($recipe['titre']) . "' class='heart-icon'>$heartIcon</a>";
-                        echo "<h3>" . htmlspecialchars($recipe['titre']) . "</h3>";
-                        echo "<img src='$photoPath' alt='" . htmlspecialchars($recipe['titre']) . "' class='cocktail-img'>";
-                        echo "<ul>";
-                        foreach ($recipe['index'] as $ingredient) {
-                            echo "<li>" . htmlspecialchars($ingredient) . "</li>";
-                        }
-                        echo "</ul>";
-                        echo "</div>";
-                    }
-                } else {
-                    echo "<p>Aucune recette trouvée.</p>";
-                }
-                ?>
-                </div>
-            <?php elseif ($action === 'profile'): ?>
-                <?php
-                $isLoggedIn = isset($_SESSION['login']);
-                if (!$isLoggedIn) {
-                    header("Location: login.php");
-                    exit;
-                }
-                
-                $username = $_SESSION['login'];
-                $userDirectory = 'users'; // Define the users directory
-                $userFile = $userDirectory . '/' . $username . '.txt';
-                
-                // Check if the 'users' directory exists; if not, create it
-                if (!is_dir($userDirectory)) {
-                    mkdir($userDirectory, 0777, true); // Create the directory with recursive flag and permissions
-                }
-                
-                // Check if the user file exists; if not, create it with default data
-                if (!file_exists($userFile)) {
-                    $userData = [
-                        'name' => '',
-                        'surname' => '',
-                        'gender' => '',
-                        'birthdate' => ''
-                    ];
-                    // Create the file with default empty user data
-                    file_put_contents($userFile, json_encode($userData));
-                } else {
-                    // Load user data from existing file
-                    $userData = json_decode(file_get_contents($userFile), true);
-                }
-                
-                $name = isset($userData['name']) ? $userData['name'] : '';
-                $surname = isset($userData['surname']) ? $userData['surname'] : '';
-                $gender = isset($userData['gender']) ? $userData['gender'] : '';
-                $birthdate = isset($userData['birthdate']) ? $userData['birthdate'] : '';
-                
-                ?>
-                <h2 class="section-title">Profil Utilisateur</h2>
-                <div class="form-container">
-                    <form method="POST" action="profile.php" class="profile-form">
-                        <div class="form-group">
-                            <label for="name">Nom:</label>
-                            <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($name); ?>" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="surname">Prénom:</label>
-                            <input type="text" id="surname" name="surname" value="<?php echo htmlspecialchars($surname); ?>" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Sexe:</label>
-                            <select id="gender" name="gender" required>
-                                <option value="homme" <?php echo $gender === 'homme' ? 'selected' : ''; ?>>Homme</option>
-                                <option value="femme" <?php echo $gender === 'femme' ? 'selected' : ''; ?>>Femme</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="birthdate">Date de naissance:</label>
-                            <input type="date" id="birthdate" name="birthdate" value="<?php echo htmlspecialchars($birthdate); ?>" required>
-                        </div>
-                        <button type="submit" class="submit-button">Mettre à jour</button>
-                    </form>
-                    <div class="message">
-                        <?php
-                        $profilemessage = isset($_GET['message']) ? $_GET['message'] : '';
-                        echo $profilemessage; ?>
-                </div>
-            <?php elseif ($action === 'register'): ?>
-                <h2>S'inscrire</h2>
-                <form action="register.php" method="POST">
-                    <label for="username">Nom d'utilisateur:</label>
-                    <input type="text" id="username" name="username" required>
-                    <label for="password">Mot de passe:</label>
-                    <input type="password" id="password" name="password" required>
-                    <button type="submit">S'inscrire</button>
-                </form>
+                <a href="index.php?action=register" class="register-link">S'inscrire</a>
             <?php endif; ?>
-        </main>
-    </div>
+        </div>
+    </nav>
+</header>
+
+<div id="content">
+    <aside>
+        <h3>Aliment courant</h3>
+        <ul>
+            <li>
+                <?php
+                echo implode(" / ", array_map(function($cat) {
+                    return "<a href='index.php?reset_path=" . urlencode($cat) . "'>" . htmlspecialchars($cat) . "</a>";
+                }, $fullPath));
+                ?>
+            </li>
+        </ul>
+        <h4>Sous-catégories :</h4>
+        <ul class="sub-categories">
+            <?php foreach ($subcategories as $subcategory): ?>
+                <li>- <a href="index.php?category=<?php echo urlencode($subcategory); ?>"><?php echo htmlspecialchars($subcategory); ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+    </aside>
+
+    <main>
+    <?php if ($action === 'profile' && $isLoggedIn): ?>
+    <h2>Profil Utilisateur</h2>
+    <?php if (isset($_GET['message'])): ?>
+        <div class="message"><?php echo htmlspecialchars($_GET['message']); ?></div>
+    <?php endif; ?>
+    <form method="POST" action="profile.php">
+        <div>
+            <label for="name">Nom:</label>
+            <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($profile['name']); ?>" required>
+        </div>
+        <div>
+            <label for="surname">Prénom:</label>
+            <input type="text" id="surname" name="surname" value="<?php echo htmlspecialchars($profile['surname']); ?>" required>
+        </div>
+        <div>
+            <label for="gender">Sexe:</label>
+            <select id="gender" name="gender" required>
+                <option value="homme" <?php echo $profile['gender'] === 'homme' ? 'selected' : ''; ?>>Homme</option>
+                <option value="femme" <?php echo $profile['gender'] === 'femme' ? 'selected' : ''; ?>>Femme</option>
+            </select>
+        </div>
+        <div>
+            <label for="birthdate">Date de naissance:</label>
+            <input type="date" id="birthdate" name="birthdate" value="<?php echo htmlspecialchars($profile['birthdate']); ?>" required>
+        </div>
+        <button type="submit">Mettre à jour</button>
+    </form>
+
+        <?php elseif ($selectedCocktail): ?>
+            <?php
+            $selectedRecipe = null;
+            foreach ($Recettes as $recipe) {
+                if ($recipe['titre'] === $selectedCocktail) {
+                    $selectedRecipe = $recipe;
+                    break;
+                }
+            }
+            ?>
+            <?php if ($selectedRecipe): ?>
+                <div class="cocktail-detail">
+                    <h2><?php echo htmlspecialchars($selectedRecipe['titre']); ?></h2>
+                    <img src="<?php echo file_exists('Photos/' . str_replace(' ', '', strtolower($selectedRecipe['titre'])) . '.jpg') 
+                                ? 'Photos/' . str_replace(' ', '', strtolower($selectedRecipe['titre'])) . '.jpg' 
+                                : 'Photos/default.jpg'; ?>" 
+                         alt="<?php echo htmlspecialchars($selectedRecipe['titre']); ?>" 
+                         class="cocktail-img">
+                    <h3>Ingrédients:</h3>
+                    <ul>
+                        <?php foreach (explode('|', $selectedRecipe['ingredients']) as $ingredient): ?>
+                            <li><?php echo htmlspecialchars($ingredient); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <h3>Préparation:</h3>
+                    <p><?php echo htmlspecialchars($selectedRecipe['preparation']); ?></p>
+                    <a href="index.php?action=cocktails" class="nav-button">Retour à la liste</a>
+                </div>
+            <?php else: ?>
+                <p>Recette non trouvée.</p>
+                <a href="index.php?action=cocktails" class="nav-button">Retour à la liste</a>
+            <?php endif; ?>
+        <?php else: ?>
+            <h2>Liste des cocktails</h2>
+            <div class="cocktail-list">
+                <?php foreach ($filteredRecipes as $recipe): ?>
+                    <?php
+                    $photoName = str_replace(' ', '', strtolower($recipe['titre'])) . '.jpg';
+                    $photoPath = file_exists('Photos/' . $photoName) ? 'Photos/' . $photoName : 'Photos/default.jpg';
+                    $isFavorite = in_array($recipe['titre'], $favorites);
+                    $heartIcon = $isFavorite ? '❤️' : '🤍';
+                    ?>
+                    <div class="cocktail-card">
+                        <a href="index.php?toggle_favorite=<?php echo urlencode($recipe['titre']); ?>" class="heart-icon"><?php echo $heartIcon; ?></a>
+                        <h3><a href="index.php?cocktail=<?php echo urlencode($recipe['titre']); ?>"><?php echo htmlspecialchars($recipe['titre']); ?></a></h3>
+                        <img src="<?php echo $photoPath; ?>" alt="<?php echo htmlspecialchars($recipe['titre']); ?>" class="cocktail-img">
+                        <ul>
+                            <?php foreach ($recipe['index'] as $ingredient): ?>
+                                <li><?php echo htmlspecialchars($ingredient); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </main>
+</div>
 </body>
 </html>
