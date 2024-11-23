@@ -1,0 +1,104 @@
+Array
+(
+    [Query] => +"Jus de fruits"
+    [Desired Tags] => Array
+        (
+            [0] => Jus de fruits
+            [1] => Jus d'abricots
+            [2] => Jus d'agrumes
+            [3] => Jus d'orange
+            [4] => Jus de citron
+            [5] => Jus de citrons verts
+            [6] => Jus de pamplemousse
+            [7] => Jus d'ananas
+            [8] => Jus de baies
+            [9] => Jus de framboises
+            [10] => Jus de bananes
+            [11] => Jus de canneberge
+            [12] => Jus de cerises
+            [13] => Jus de fruit de la passion
+            [14] => Jus de goyave
+            [15] => Jus de litchis
+            [16] => Jus de mangue
+            [17] => Jus de pêches
+            [18] => Jus de poires
+            [19] => Jus de pommes
+            [20] => Jus de raisins
+            [21] => Jus de tomates
+            [22] => Jus multivitaminé
+        )
+
+    [Undesired Tags] => Array
+        (
+        )
+
+    [Unrecognized Tags] => Array
+        (
+        )
+
+    [Filtered Recipes] => Array
+        (
+            [0] => Alerte à Malibu (cocktail de la couleurs des fameux maillots de bains... ou presque)
+            [1] => Bloody Mary
+            [2] => Bora bora
+            [3] => Cocktail Bacardi
+            [4] => Cocktail Bacardi, grenadine, citron
+            [5] => Cocktail Balalaïka
+            [6] => Cocktail Fraisalia (sans alcool)
+            [7] => Cocktail Grand Paradis
+            [8] => Cocktail MAP
+            [9] => Cocktail MTS
+            [10] => Cocktail Madras
+            [11] => Cocktail Mexicain à ma façon
+            [12] => Cocktail Pomabricotine
+            [13] => Cocktail Pomenas
+            [14] => Cocktail Whisky Cranberries
+            [15] => Cocktail anapomise
+            [16] => Cocktail aux agrumes sans alcool
+            [17] => Cocktail champagne menthe citron vert
+            [18] => Cocktail citron-menthe (sans alcool)
+            [19] => Cocktail crème de coco et banane
+            [20] => Cocktail de fruits au citron vert
+            [21] => Cocktail de jus de fruits pour les enfants
+            [22] => Cocktail de pomme ambrée
+            [23] => Cocktail des îles Praslin
+            [24] => Cocktail du verger
+            [25] => Cocktail exotique au fruit de la passion
+            [26] => Cocktail glacé tropical
+            [27] => Cocktail italien prosecco
+            [28] => Cocktail la variante (à base de rosé)
+            [29] => Cocktail mexicanos
+            [30] => Cocktail mousseux fraise citron vert (sans alcool)
+            [31] => Cocktail paradise
+            [32] => Cocktail pour les amoureux
+            [33] => Cocktail rose rosé pamplemousse
+            [34] => Cocktail rose sucré
+            [35] => Cocktail rouge
+            [36] => Cocktail sans alcool Cranberry-orange
+            [37] => Cocktail sans alcool KidiCana
+            [38] => Cocktail sans alcool Sweet Melon
+            [39] => Cocktail sans alcool Tropical Sunshine
+            [40] => Cocktail tropical délicieux
+            [41] => Coconut kiss
+            [42] => Creole cream (cocktail)
+            [43] => Frosty lime
+            [44] => Ginger cosmo
+            [45] => Grand Marnier sour (cocktail)
+            [46] => Hulk ( cocktail )
+            [47] => Le baiser de la Schtroumpfette
+            [48] => Le vandetta
+            [49] => Margarita
+            [50] => Pink 3x6 (cocktail sans alcool)
+            [51] => Piña Colada
+            [52] => Piña Colada (cocktail)
+            [53] => Raifortissimo
+            [54] => Rainbow
+            [55] => Red cocktail
+            [56] => Rhum arrangé à la pomme
+            [57] => Sangria sans alcool
+            [58] => Screwdriver
+            [59] => Tequila sunrise
+            [60] => Virevoltage
+        )
+
+)

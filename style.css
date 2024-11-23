@@ -92,12 +92,14 @@ main {
 }
 
 /* Cocktail list grid layout */
+
 .cocktail-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* Adjust column widths dynamically */
+    gap: 20px; /* Space between the cards */
+    justify-content: center; /* Center the grid within the container */
 }
+
 
 /* Individual card container */
 .cocktail-card {

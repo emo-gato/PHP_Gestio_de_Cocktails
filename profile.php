@@ -70,7 +70,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Profil Utilisateur</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
+    <header>
+        <nav class="navbar">
+            <div class="nav-buttons">
+                <a href="index.php?reset=true" class="nav-button">Navigation</a>
+                <a href="index.php?favorites=true" class="nav-button">Recettes ❤️</a>
+            </div>
+            <div class="search-container">
+                <form action="index.php" method="POST">
+                    <label for="search">Recherche :</label>
+                    <input type="text" id="searchString" name="searchString" placeholder="Rechercher..." required>
+                    <button type="submit" class="search-button">🔍</button>
+                </form>
+            </div>
+            <div class="login-zone">
+                <?php if ($isLoggedIn): ?>
+                    <span><?php echo htmlspecialchars($_SESSION['login']); ?></span>
+                    <a href="profile.php">Profil</a>
+                    <a href="logout.php" class="logout-link">Se déconnecter</a>
+                <?php else: ?>
+                    <form action="login.php" method="post" class="login-form">
+                        <input type="text" name="login" placeholder="Login" required>
+                        <input type="password" name="password" placeholder="Mot de passe" required>
+                        <button type="submit" class="login-button">Connexion</button>
+                    </form>
+                    <a href="register.php" class="register-link">S'inscrire</a>
+                <?php endif; ?>
+            </div>
+        </nav>
+    </header>
+
 <body>
     <h1>Mon Profil</h1>
 

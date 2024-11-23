@@ -1,136 +1,123 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 include('Donnees.inc.php'); // Include the necessary data for recipes and tags
 
+// Renamed function to avoid conflict with the index.php function
+function getSubcategoriesForSearch($category, $hierarchy) {
+    $subcategories = [$category];
+    if (isset($hierarchy[$category]['sous-categorie']) && is_array($hierarchy[$category]['sous-categorie'])) {
+        foreach ($hierarchy[$category]['sous-categorie'] as $subcategory) {
+            $subcategories = array_merge($subcategories, getSubcategoriesForSearch($subcategory, $hierarchy));
+        }
+    }
+    return array_unique($subcategories);
+}
+
 // Function to check if an ingredient is recognized
-function isIngredientRecognized($ingredient) {
-    require 'Donnees.inc.php'; // Ensure this has the necessary data
-    // Normalize the ingredient to lower case for comparison
-    $normalizedIngredient = strtolower($ingredient); 
-    foreach ($Recettes as $item) {
-        // Check for case-insensitive match
+function isIngredientRecognized($ingredient, $recipes = []) {
+    if (!is_array($recipes)) {
+        return false; // Ensure $recipes is an array
+    }
+    $normalizedIngredient = strtolower($ingredient);
+    foreach ($recipes as $item) {
         foreach ($item['index'] as $indexIngredient) {
             if (strtolower($indexIngredient) === $normalizedIngredient) {
-                return true; // Ingredient is recognized
+                return true;
             }
         }
     }
-    return false; // Ingredient not recognized
+    return false;
 }
 
-// Function to parse the search string into tags
-function getTags($searchString) {
-    $output = [];
-    $unrecognized = [];
+// Function to parse the search query
+function parseSearchQuery($query, $hierarchy, $recipes = []) {
+    $tags = ['desired' => [], 'undesired' => [], 'unrecognized' => []];
+    if (!is_array($recipes)) {
+        return $tags; // Return empty tags if $recipes is invalid
+    }
 
-    // Use regex to find phrases in quotes and standalone words
-    preg_match_all('/"([^"]+)"|\+(\w+)|-(\w+)/', $searchString, $matches);
-    
-    foreach ($matches[0] as $match) {
-        if (strpos($match, '"') === 0) {
-            // Multi-word ingredient
-            $tagName = trim($matches[1][0]);
-            if ($tagName) {
-                $output[$tagName] = true; // Considered wanted
+    preg_match_all('/(\+|-)?"([^"]+)"|(\+|-)?"?([\w]+)"?/', $query, $matches, PREG_SET_ORDER);
+    file_put_contents('debug_log.txt', print_r($matches , true));
+    foreach ($matches as $match) {
+
+        
+
+        if (isset($match[1]) && $match[1] !== '')       $operator = $match[1];
+        elseif (isset($match[3]) && $match[3] !== '')   $operator = $match[3];
+        else                        $operator = '+';
+
+        if(isset($match[2]) && $match[2] !== '')        $tag = $match[2];
+        elseif (isset($match[4]) && $match[4] !== '')   $tag = $match[4];
+        else                        $tag = 'peepeepoopoo';
+
+        $tag = strtolower($tag);
+        $tag[0] = strtoupper($tag[0]);
+
+        if (array_key_exists($tag, $hierarchy) || isIngredientRecognized($tag, $recipes)) {
+            $descendants = getSubcategoriesForSearch($tag, $hierarchy);
+            if ($operator === '+') {
+                $tags['desired'] = array_merge($tags['desired'], $descendants);
+            } elseif ($operator === '-') {
+                $tags['undesired'] = array_merge($tags['undesired'], $descendants);
             }
-        } elseif (strpos($match, '+') === 0) {
-            // Wanted ingredient
-            $tagName = trim($matches[2][0]);
-            if ($tagName) {
-                $output[$tagName] = true; // Considered wanted
-            }
-        } elseif (strpos($match, '-') === 0) {
-            // Not wanted ingredient
-            $tagName = trim($matches[3][0]);
-            if ($tagName) {
-                $output[$tagName] = false; // Considered unwanted
-            }
+        } else {
+            $tags['unrecognized'][] = $tag;
         }
     }
 
-    // Check if tags are in hierarchy
-    foreach ($output as $tag => $value) {
-        if (!isIngredientRecognized($tag)) {
-            $unrecognized[] = $tag; // Tag is not recognized
-        }
-    }
-
-    return [
-        'tags' => $output,
-        'unrecognized' => $unrecognized
-    ];
+    return $tags;
 }
 
-// Function to search for recipes based on the parsed tags
-function search($tags) {
-    require 'Donnees.inc.php'; // Make sure to include your data here
+// Function to filter recipes
+function searchRecipes($tags, $recipes = []) {
     $results = [];
-    foreach ($Recettes as $item) {
-        $valid = true;
-        foreach ($tags['tags'] as $tag => $value) {
-            if ($value === true && !in_array($tag, $item['index'])) {
-                $valid = false; // Required tag not found in recipe
-            }
-            if ($value === false && in_array($tag, $item['index'])) {
-                $valid = false; // Disallowed tag found in recipe
-            }
-        }
-        if ($valid) {
-            array_push($results, $item); // Add valid recipe to results
+    if (!is_array($recipes)) {
+        return $results; // Return empty results if $recipes is invalid
+    }
+
+    foreach ($recipes as $recipe) {
+        $ingredients = $recipe['index'];
+        $matchesDesired = empty($tags['desired']) || count(array_intersect($tags['desired'], $ingredients)) > 0;
+        $matchesUndesired = empty($tags['undesired']) || count(array_intersect($tags['undesired'], $ingredients)) === 0;
+
+        if ($matchesDesired && $matchesUndesired) {
+            $results[] = $recipe;
         }
     }
     return $results;
 }
 
-// Main execution starts here
-$query = isset($_GET['query']) ? $_GET['query'] : ''; // Handle missing query
+// Main logic
+$query = isset($_POST['searchString']) ? $_POST['searchString'] : ''; // Query from form submission
 $response = [
     'desired' => [],
-    'unwanted' => [],
+    'undesired' => [],
     'recipes' => [],
     'unrecognized' => [],
 ];
 
 if (!empty($query)) {
-    try {
-        // Process the search query
-        $tags = getTags($query);
+    $tags = parseSearchQuery($query, $Hierarchie, $Recettes);
+    $response['desired'] = array_unique($tags['desired']);
+    $response['undesired'] = array_unique($tags['undesired']);
+    $response['unrecognized'] = $tags['unrecognized'];
 
-        // Set the desired and unwanted arrays based on tags
-        $response['desired'] = array_keys(array_filter($tags['tags'], function($v) { return $v; }));
-        $response['unwanted'] = array_keys(array_filter($tags['tags'], function($v) { return !$v; }));
-        $response['unrecognized'] = $tags['unrecognized']; // Collect unrecognized tags
-
-        // Perform the search
-        if (!empty($response['desired']) || !empty($response['unwanted'])) {
-            $recipes = search($tags);
-            foreach ($recipes as $recipe) {
-                $response['recipes'][] = $recipe; // Store the recipe directly
-            }
-        }
-    } catch (Exception $e) {
-        echo "<p>Erreur: " . htmlspecialchars($e->getMessage()) . "</p>";
-        exit;
+    if (!empty($response['desired']) || !empty($response['undesired'])) {
+        $response['recipes'] = searchRecipes($tags, $Recettes);
     }
+
+    // Write results to a log file
+    $logData = [
+        'Query' => $query,
+        'Desired Tags' => $response['desired'],
+        'Undesired Tags' => $response['undesired'],
+        'Unrecognized Tags' => $response['unrecognized'],
+        'Filtered Recipes' => array_map(function ($recipe) {
+            return $recipe['titre'];
+        }, $response['recipes']),
+    ];
+
+    file_put_contents('debug_log.txt', print_r($logData, true));
 }
-
-// Generate HTML output based on the results
-?>
-<h2>Résultats de recherche</h2>
-<p>Liste des aliments souhaités : <?php echo implode(", ", $response['desired']); ?></p>
-<p>Liste des aliments non souhaités : <?php echo implode(", ", $response['unwanted']); ?></p>
-
-<?php if (!empty($response['unrecognized'])): ?>
-    <p>Éléments non reconnus dans la requête : <?php echo implode(", ", $response['unrecognized']); ?></p>
-<?php endif; ?>
-
-<?php if (!empty($response['recipes'])): ?>
-    <h3>Recettes trouvées :</h3>
-    <ul>
-        <?php foreach ($response['recipes'] as $recipe): ?>
-            <li><?php echo htmlspecialchars($recipe['titre']); ?></li>
-        <?php endforeach; ?>
-    </ul>
-<?php else: ?>
-    <p>Aucune recette trouvée.</p>
-<?php endif; ?>
