@@ -1,6 +1,8 @@
 <?php
 session_start();
 header('Content-Type: text/html; charset=utf-8');
+include('users.php'); // Include the global user data
+
 $isLoggedIn = isset($_SESSION['login']);
 
 if (!$isLoggedIn) {
@@ -8,72 +10,57 @@ if (!$isLoggedIn) {
     exit;
 }
 
-$username = htmlspecialchars(trim($_SESSION['login'])); // Sanitize username
-$userDirectory = 'users'; // Define the users directory
-$userFile = $userDirectory . '/' . $username . '.txt';
+$currentUser = htmlspecialchars(trim($_SESSION['login'])); // Sanitize username
+$profile = &$Users[$currentUser]['profile']; // Reference user's profile
 
-// Check if the 'users' directory exists; if not, create it
-if (!is_dir($userDirectory)) {
-    if (!mkdir($userDirectory, 0777, true) && !is_dir($userDirectory)) {
-        die("Failed to create user directory.");
-    }
-}
+$responseMessage = ''; // Feedback message for the user
 
-// Check if the user file exists; if not, create it with default data
-if (!file_exists($userFile)) {
-    $userData = [
-        'name' => '',
-        'surname' => '',
-        'gender' => '',
-        'birthdate' => ''
-    ];
-    file_put_contents($userFile, json_encode($userData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
-} else {
-    // Load user data from existing file
-    $userData = json_decode(file_get_contents($userFile), true);
-}
-
-$name = isset($userData['name']) ? $userData['name'] : '';
-$surname = isset($userData['surname']) ? $userData['surname'] : '';
-$gender = isset($userData['gender']) ? $userData['gender'] : '';
-$birthdate = isset($userData['birthdate']) ? $userData['birthdate'] : '';
-
-$profilemessage = '';
-
-// Handle form submission
+// Handle profile updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate inputs
+    // Sanitize inputs
     $name = trim($_POST['name']);
     $surname = trim($_POST['surname']);
     $gender = $_POST['gender'];
     $birthdate = $_POST['birthdate'];
 
-    // Validate names (only letters allowed)
+    // Validate inputs
     if (!preg_match("/^[a-zA-ZÀ-ÿ\s]+$/u", $name)) {
-        $profilemessage = "Le nom ne peut contenir que des lettres et des espaces.";
+        $responseMessage = "Le nom ne peut contenir que des lettres et des espaces.";
     } elseif (!preg_match("/^[a-zA-ZÀ-ÿ\s]+$/u", $surname)) {
-        $profilemessage = "Le prénom ne peut contenir que des lettres et des espaces.";
+        $responseMessage = "Le prénom ne peut contenir que des lettres et des espaces.";
+    } elseif (!in_array($gender, ['homme', 'femme'])) {
+        $responseMessage = "Le sexe doit être 'homme' ou 'femme'.";
+    } elseif (!validateBirthdate($birthdate)) {
+        $responseMessage = "Vous devez avoir 18 ans ou plus.";
     } else {
-        // Validate birthdate (user must be 18+)
-        $birthdateTimestamp = strtotime($birthdate);
-        if ($birthdateTimestamp && time() - $birthdateTimestamp < 18 * 365 * 24 * 60 * 60) {
-            $profilemessage = "Vous devez avoir 18 ans ou plus.";
-        } else {
-            // Update user data
-            $userData['name'] = $name;
-            $userData['surname'] = $surname;
-            $userData['gender'] = $gender;
-            $userData['birthdate'] = $birthdate;
+        // Update user profile
+        $profile['name'] = $name;
+        $profile['surname'] = $surname;
+        $profile['gender'] = $gender;
+        $profile['birthdate'] = $birthdate;
 
-            // Save changes to the file
-            if (file_put_contents($userFile, json_encode($userData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX) === false) {
-                $profilemessage = "Échec de la mise à jour des informations.";
-            } else {
-                $profilemessage = "Les informations ont été mises à jour avec succès.";
-            }
-        }
+        saveUsers($Users); // Save updated profile
+        $responseMessage = "Les informations ont été mises à jour avec succès.";
     }
-    header("Location: index.php?action=profile&message=" . urlencode($profilemessage));
+    header("Location: index.php?action=profile&message=" . urlencode($responseMessage));
     exit;
+}
+
+// Function to validate birthdate
+function validateBirthdate($birthdate) {
+    $birthdateTimestamp = strtotime($birthdate);
+
+    if ($birthdateTimestamp === false) {
+        return false; // Invalid date
+    }
+
+    $ageInSeconds = time() - $birthdateTimestamp;
+    return $ageInSeconds >= (18 * 365.25 * 24 * 60 * 60); // At least 18 years old
+}
+
+// Function to save $Users back to users.php
+function saveUsers($users) {
+    $fileContent = "<?php\n\$Users = " . var_export($users, true) . ";\n?>";
+    file_put_contents('users.php', $fileContent);
 }
 ?>

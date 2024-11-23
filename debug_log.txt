@@ -1,58 +1,7 @@
 Array
 (
-    [Query] => +Glaçon +fruit -Citron
+    [Query] => +Citron -Sel
     [Desired Tags] => Array
-        (
-            [0] => Glaçon
-            [1] => Fruit
-            [2] => Agrume
-            [3] => Citron
-            [4] => Partie de citron
-            [5] => Jus de citron
-            [6] => Tranche de citron
-            [7] => Zeste de citron
-            [8] => Citron vert
-            [9] => Partie de citron vert
-            [10] => Jus de citrons verts
-            [11] => Zeste de citron vert
-            [12] => Kumquat
-            [13] => Mandarine
-            [14] => Clémentine
-            [15] => Orange
-            [16] => Orange sanguine
-            [17] => Pamplemousse
-            [18] => Partie de paplemousse
-            [19] => Jus de pamplemousse
-            [20] => Partie d'agrumes
-            [21] => Partie d'orange
-            [22] => Jus d'orange
-            [23] => Baie
-            [24] => Cassis
-            [25] => Fraise
-            [26] => Framboise
-            [27] => Kiwi
-            [28] => Cannelle
-            [29] => Fruit à noyau
-            [30] => Cerise
-            [31] => Cerise griotte
-            [32] => Pêche
-            [33] => Fruit à pepin
-            [34] => Pomme
-            [35] => Fruit sec
-            [36] => Pistache
-            [37] => Fruit tropical commun
-            [38] => Ananas
-            [39] => Banane
-            [40] => Mangue
-            [41] => Noix de coco
-            [42] => Fruit tropical exotique
-            [43] => Litchi
-            [44] => Melon
-            [45] => Melon vert
-            [46] => Pastèque
-        )
-
-    [Undesired Tags] => Array
         (
             [0] => Citron
             [1] => Partie de citron
@@ -61,76 +10,66 @@ Array
             [4] => Zeste de citron
         )
 
+    [Undesired Tags] => Array
+        (
+            [0] => Sel
+            [1] => Sel de céleri
+        )
+
     [Unrecognized Tags] => Array
         (
         )
 
     [Filtered Recipes] => Array
         (
-            [0] => Alerte à Malibu (cocktail de la couleurs des fameux maillots de bains... ou presque)
-            [1] => Aperol Spritz : cocktail italien pétillant
-            [2] => Caïpirinha
-            [3] => Cocktail Cava Vodka Lemon
-            [4] => Cocktail Fraisalia (sans alcool)
-            [5] => Cocktail Lion rouge
-            [6] => Cocktail MAP
-            [7] => Cocktail Madras
-            [8] => Cocktail Pomenas
-            [9] => Cocktail apéritif aux framboises
-            [10] => Cocktail au kumquat et au litchi
-            [11] => Cocktail au limoncello
-            [12] => Cocktail café au lait
-            [13] => Cocktail coco
-            [14] => Cocktail coco des amoureux
-            [15] => Cocktail crème de coco et banane
-            [16] => Cocktail de fruits
-            [17] => Cocktail de fruits au citron vert
-            [18] => Cocktail de jus de fruits pour les enfants
-            [19] => Cocktail des dimanches de neige
-            [20] => Cocktail des îles Praslin
-            [21] => Cocktail du verger
-            [22] => Cocktail glacé tropical
-            [23] => Cocktail italien prosecco
-            [24] => Cocktail la variante (à base de rosé)
-            [25] => Cocktail light fraîcheur à la pastèque
-            [26] => Cocktail léger au martini
-            [27] => Cocktail mousseux fraise citron vert (sans alcool)
-            [28] => Cocktail noix de coco-café
-            [29] => Cocktail pamplemousse menthe
-            [30] => Cocktail paradise
-            [31] => Cocktail pour les amoureux
-            [32] => Cocktail rose au whisky
-            [33] => Cocktail rose rosé pamplemousse
-            [34] => Cocktail rouge
-            [35] => Cocktail sans alcool Sweet Melon
-            [36] => Cocktail sans alcool Tropical Sunshine
-            [37] => Cocktail white russian
-            [38] => Coconut kiss
-            [39] => Cuba libre
-            [40] => Frosty lime
-            [41] => Gin fizz facile
-            [42] => Ginger cosmo
-            [43] => Hulk ( cocktail )
-            [44] => Le vandetta
-            [45] => Margarita
-            [46] => Margarita à la fraise
-            [47] => Mojito
-            [48] => Mojito au Basilic
-            [49] => Mojito cubain
-            [50] => Negroni Cocktail
-            [51] => Piña Colada (cocktail)
-            [52] => Porto Flip
-            [53] => Punch-sangria de pastèque
-            [54] => Raifortissimo
-            [55] => Rainbow
-            [56] => Red cocktail
-            [57] => Rhum arrangé à la pomme
-            [58] => Rince-gouttes (cocktail)
-            [59] => Screwdriver
-            [60] => Soupe au Champagne (cocktail)
-            [61] => Tequila sunrise
-            [62] => Ti'punch
-            [63] => Tutti cocktail
+            [0] => Bora bora
+            [1] => Builder
+            [2] => Cocktail Bacardi
+            [3] => Cocktail Bacardi, grenadine, citron
+            [4] => Cocktail Balalaïka
+            [5] => Cocktail apéritif
+            [6] => Cocktail au Martini
+            [7] => Cocktail aux agrumes sans alcool
+            [8] => Cocktail aux framboise
+            [9] => Cocktail bulles de melon
+            [10] => Cocktail champagne menthe citron vert
+            [11] => Cocktail champanisé
+            [12] => Cocktail citron-menthe (sans alcool)
+            [13] => Cocktail de pomme ambrée
+            [14] => Cocktail exotique au fruit de la passion
+            [15] => Cocktail rose sucré
+            [16] => Cocktail sans alcool Cranberry-orange
+            [17] => Cocktail tropical délicieux
+            [18] => Creole cream (cocktail)
+            [19] => Grand Marnier sour (cocktail)
+            [20] => Pink 3x6 (cocktail sans alcool)
+            [21] => Sangria sans alcool
         )
 
+)
+Array
+(
+    [Query] => + Whisky
+    [Explicit Desired Tags] => Array
+        (
+            [0] => Whisky
+        )
+
+    [Explicit Undesired Tags] => Array
+        (
+        )
+
+    [Unrecognized Tags] => Array
+        (
+        )
+
+    [Filtered Recipes] => Array
+        (
+            [0] => Cocktail Lion rouge
+            [1] => Cocktail Whisky Cranberries
+            [2] => Cocktail café au lait
+            [3] => Cocktail rose au whisky
+        )
+
+    [Feedback] => Liste des aliments souhaités : Whisky
 )

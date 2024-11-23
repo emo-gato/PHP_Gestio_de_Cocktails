@@ -156,3 +156,60 @@ footer {
     background-color: #eee;
     border-top: 1px solid black;
 }
+/* Styling for drink details view */
+.drink-detail {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.drink-photo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.drink-detail-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 300px; /* Adjust the size of the photo */
+    height: auto; /* Maintain aspect ratio */
+}
+
+.drink-detail h2 {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+.drink-detail ul {
+    padding-left: 20px;
+    text-align: left;
+}
+
+.drink-detail p {
+    text-align: left;
+    line-height: 1.5;
+    margin-top: 15px;
+}
+.cocktail-img {
+    width: 100%; /* Default size for the list */
+    height: auto;
+    max-width: 300px; /* Limit the size of the image */
+    margin-bottom: 20px;
+}
+
+.cocktail-detail .cocktail-img {
+    max-width: 150px; /* Smaller size for detailed view */
+    display: block;
+    margin: 0 auto; /* Center the image */
+}
+
+
